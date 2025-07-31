@@ -104,8 +104,8 @@ class GW_Cache_Buster {
 	}
 
 	public function form_filter( $markup, $form ) {
-		// Prevent recursion.
-		if ( rgar( $GLOBALS, 'processing' ) ) {
+		// Prevent recursion, and ensure we're not editing an entry via GP Entry Blocks.
+		if ( rgar( $GLOBALS, 'processing' ) || ( function_exists( 'gp_entry_blocks' ) && gp_entry_blocks()->block_edit_form->is_editing_entry( $form['id'] ) ) ) {
 			return $markup;
 		}
 
