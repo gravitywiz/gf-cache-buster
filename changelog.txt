@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.6 | July 31st, 2025
+
+- Fixed an issue with Cache Buster causing conflict with GP Entry Blocks when editing entries.
+
 ## 0.6.5 | July 24th, 2025
 
 - Fixed an issue where form validation would fail when Cache Buster was enabled globally.
