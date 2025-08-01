@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.5 | July 24th, 2025
+
+- Fixed an issue where form validation would fail when Cache Buster was enabled globally.
+
 ## 0.6.4 | February 6th, 2025
 
 - Fixed issue with Cache Buster plugin causing fatal error
