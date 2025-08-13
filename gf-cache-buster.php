@@ -241,14 +241,18 @@ class GW_Cache_Buster {
 		}
 		?>
 		<script type="text/javascript">
-			( function ( $ ) {
-				var formId = '<?php echo $form_id; ?>';
-				$.post( '<?php echo $ajax_url; ?>', {
-					action: 'gfcb_get_form',
-					form_id: '<?php echo $form_id; ?>',
-					atts: <?php echo wp_json_encode( $atts ); ?>,
-					form_request_origin: '<?php echo esc_js( GFCommon::openssl_encrypt( GFFormsModel::get_current_page_url() ) ); ?>',
-					lang: '<?php echo $lang; ?>'
+			(function initGFCB() {
+				if (typeof jQuery === 'undefined') {
+					return setTimeout(initGFCB, 50);
+				}
+				( function ( $ ) {
+					var formId = '<?php echo $form_id; ?>';
+					$.post( '<?php echo $ajax_url; ?>', {
+						action: 'gfcb_get_form',
+						form_id: '<?php echo $form_id; ?>',
+						atts: <?php echo wp_json_encode( $atts ); ?>,
+						form_request_origin: '<?php echo esc_js( GFCommon::openssl_encrypt( GFFormsModel::get_current_page_url() ) ); ?>',
+						lang: '<?php echo $lang; ?>'
 				}, function( response ) {
 					$( '#gf-cache-buster-form-container-<?php echo $form_id; ?>' ).html( response ).fadeIn();
 					if( window['gformInitDatepicker'] ) {
@@ -278,6 +282,7 @@ class GW_Cache_Buster {
 					} );
 				} );
 			} )( jQuery );
+			})();
 		</script>
 
 		<?php
