@@ -241,43 +241,45 @@ class GW_Cache_Buster {
 		}
 		?>
 		<script type="text/javascript">
-			( function ( $ ) {
-				var formId = '<?php echo $form_id; ?>';
-				$.post( '<?php echo $ajax_url; ?>', {
-					action: 'gfcb_get_form',
-					form_id: '<?php echo $form_id; ?>',
-					atts: <?php echo wp_json_encode( $atts ); ?>,
-					form_request_origin: '<?php echo esc_js( GFCommon::openssl_encrypt( GFFormsModel::get_current_page_url() ) ); ?>',
-					lang: '<?php echo $lang; ?>'
-				}, function( response ) {
-					$( '#gf-cache-buster-form-container-<?php echo $form_id; ?>' ).html( response ).fadeIn();
-					if( window['gformInitDatepicker'] ) {
-						gformInitDatepicker();
-					}
-					// Initialize GPPA
-					// @todo Since we are not triggering the `gform_post_render` below, I'm not certain that we need this.
-					if( response.indexOf('GPPA') > -1 ) {
-						window.gform.doAction('gppa_register_form', formId);
-					}
-					// We probably don't need this since everything else should already be loaded by this point but since
-					// GF is using it as their standard for triggering the `gform_post_render` event, I figured we should follow suit.
-					gform.initializeOnLoaded( function() {
-						// Form has been rendered. Trigger post render to initialize scripts if form is not restricted (expired).
-						<?php
-							$form_restriction_error = rgars( GFFormDisplay::$submission, $form_id . '/form_restriction_error' );
-							if ( ! $form_restriction_error ) {
-								echo sprintf(
-									'gform.initializeOnLoaded(function() {%s});',
-									GFFormDisplay::post_render_script(
-										$form_id,
-										GFFormDisplay::get_current_page( $form_id )
-									)
-								);
-							}
-						?>
+			document.addEventListener('DOMContentLoaded', function() {
+				( function ( $ ) {
+					var formId = '<?php echo $form_id; ?>';
+					$.post( '<?php echo $ajax_url; ?>', {
+						action: 'gfcb_get_form',
+						form_id: '<?php echo $form_id; ?>',
+						atts: <?php echo wp_json_encode( $atts ); ?>,
+						form_request_origin: '<?php echo esc_js( GFCommon::openssl_encrypt( GFFormsModel::get_current_page_url() ) ); ?>',
+						lang: '<?php echo $lang; ?>'
+					}, function( response ) {
+						$( '#gf-cache-buster-form-container-<?php echo $form_id; ?>' ).html( response ).fadeIn();
+						if( window['gformInitDatepicker'] ) {
+							gformInitDatepicker();
+						}
+						// Initialize GPPA
+						// @todo Since we are not triggering the `gform_post_render` below, I'm not certain that we need this.
+						if( response.indexOf('GPPA') > -1 ) {
+							window.gform.doAction('gppa_register_form', formId);
+						}
+						// We probably don't need this since everything else should already be loaded by this point but since
+						// GF is using it as their standard for triggering the `gform_post_render` event, I figured we should follow suit.
+						gform.initializeOnLoaded( function() {
+							// Form has been rendered. Trigger post render to initialize scripts if form is not restricted (expired).
+							<?php
+								$form_restriction_error = rgars( GFFormDisplay::$submission, $form_id . '/form_restriction_error' );
+								if ( ! $form_restriction_error ) {
+									echo sprintf(
+										'gform.initializeOnLoaded(function() {%s});',
+										GFFormDisplay::post_render_script(
+											$form_id,
+											GFFormDisplay::get_current_page( $form_id )
+										)
+									);
+								}
+							?>
+						} );
 					} );
-				} );
-			} )( jQuery );
+				} )( jQuery );
+			});
 		</script>
 
 		<?php
