@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.7 | August 20, 2025
+
+- Fixed compatibility issue when jQuery is loaded in footer.
+
 ## 0.6.6 | July 31st, 2025
 
 - Fixed an issue with Cache Buster causing conflict with GP Entry Blocks when editing entries.
