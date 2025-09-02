@@ -342,6 +342,7 @@ class GW_Cache_Buster {
 		add_filter( 'gform_init_scripts_footer', '__return_true', 987 );
 		add_filter( 'gform_form_tag_' . $form_id, array( $this, 'add_hidden_inputs' ), 10, 2 );
 		add_filter( 'gform_pre_render_' . $form_id, array( $this, 'replace_embed_tag_for_field_default_values' ) );
+		add_filter( 'gform_get_form_filter_' . $form_id, array( $this, 'ensure_lmt_js_vars' ), 10, 2 );
 
 		add_filter( 'gform_form_theme_slug', function( $slug, $form ) {
 			return rgar( $_REQUEST, 'form_theme' ) ?: $slug;
@@ -519,6 +520,22 @@ class GW_Cache_Buster {
 
 		$form_tag .= '<input type="hidden" value="' . esc_attr( rgars( $GLOBALS, 'GWCB_POST/form_request_origin' ) ) . '" name="gwcb_form_request_origin" />';
 		return $form_tag;
+	}
+
+	/**
+	 * Ensure Live Merge Tag JavaScript variables are created.
+	 */
+	public function ensure_lmt_js_vars( $form_string, $form ) {
+		if ( ! function_exists( 'gp_populate_anything' ) ) {
+			return $form_string;
+		}
+
+		$lmt = GP_Populate_Anything_Live_Merge_Tags::get_instance();
+
+		// Add a dummy current value to ensure JavaScript variables are created
+		$lmt->add_current_lmt_value( $form['id'], '@{:0}', '' );
+
+		return $lmt->add_localization_attr_variable( $form_string, $form );
 	}
 }
 
