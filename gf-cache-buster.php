@@ -364,8 +364,17 @@ class GW_Cache_Buster {
 		$GLOBALS['GWCB_POST'] = $_POST;
 		$_POST                = array();
 
+		// Extract theme and styles from atts to pass to gravity_form
+		$form_theme      = rgar( $atts, 'theme' );
+		$style_settings  = rgar( $atts, 'styles' );
+
+		// JSON-encode styles if it's an array (to match expected format from blocks)
+		if ( is_array( $style_settings ) ) {
+			$style_settings = wp_json_encode( $style_settings );
+		}
+
 		$GLOBALS['processing'] = true;
-		gravity_form( $form_id, filter_var( rgar( $atts, 'title', true ), FILTER_VALIDATE_BOOLEAN ), filter_var( rgar( $atts, 'description', true ), FILTER_VALIDATE_BOOLEAN ), false, $field_values, true /* default to true; add support for non-ajax in the future */, rgar( $atts, 'tabindex' ) );
+		gravity_form( $form_id, filter_var( rgar( $atts, 'title', true ), FILTER_VALIDATE_BOOLEAN ), filter_var( rgar( $atts, 'description', true ), FILTER_VALIDATE_BOOLEAN ), false, $field_values, true /* default to true; add support for non-ajax in the future */, rgar( $atts, 'tabindex' ), true, $form_theme, $style_settings );
 		$GLOBALS['processing'] = false;
 
 		remove_filter( 'gform_form_tag_' . $form_id, array( $this, 'add_hidden_inputs' ) );
