@@ -357,6 +357,21 @@ class GW_Cache_Buster {
 
 		$atts = rgpost( 'atts' );
 
+		/**
+		 * Filter to allow integrations to provide custom form markup for Cache Buster AJAX requests.
+		 * Returning a non-null string bypasses the default gravity_form() rendering.
+		 *
+		 * @param string|null     $provider_markup Custom markup. Return a string to short-circuit.
+		 * @param int             $form_id         The form ID being requested.
+		 * @param array           $atts            Shortcode attributes from the AJAX payload.
+		 * @param GW_Cache_Buster $this            The Cache Buster instance.
+		 */
+		$provider_markup = gf_apply_filters( array( 'gfcb_form_markup_provider', $form_id ), null, $form_id, $atts, $this );
+		if ( is_string( $provider_markup ) ) {
+			echo $provider_markup;
+			die();
+		}
+
 		// GF expects an associative array for field values. Parse them before passing it on.
 		$field_values = wp_parse_args( rgar( $atts, 'field_values' ) );
 
