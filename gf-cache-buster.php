@@ -18,6 +18,8 @@ class GW_Cache_Buster {
 
 	private $_form_args = array();
 
+	private $_is_form_submission = false;
+
 	public function __construct( $args = array() ) {
 
 		// set our default arguments, parse against the provided arguments, and store for use throughout the class
@@ -40,6 +42,9 @@ class GW_Cache_Buster {
 		if ( ! property_exists( 'GFCommon', 'version' ) || ! version_compare( GFCommon::$version, '1.8', '>=' ) ) {
 			return;
 		}
+
+		// Capture at init time before anything (e.g. GP Reload Form) can clear $_POST.
+		$this->_is_form_submission = isset( $_POST['gform_submit'] );
 
 		add_filter( 'gform_shortcode_form', array( $this, 'shortcode' ), 10, 3 );
 		add_filter( 'gform_get_form_filter', array( $this, 'form_filter' ), 10, 2 );
@@ -287,7 +292,9 @@ class GW_Cache_Buster {
 	}
 
 	public function is_cache_busting_applicable() {
-		if ( isset( $_POST['gform_submit'] ) ) {
+		// Check the flag captured at init time — $_POST may have been cleared by the time this runs
+		// (e.g. GP Reload Form clears $_POST before calling gravity_form() inside gform_confirmation).
+		if ( $this->_is_form_submission ) {
 			return false;
 		}
 
