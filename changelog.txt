@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.9 | May 27, 2026
+
+- Improved compatibility with GP Reload Form.
+
 ## 0.6.8 | December 17, 2025
 
 - Fixed an issue where Gravity Forms block custom styles were not applied when cache buster was enabled.
