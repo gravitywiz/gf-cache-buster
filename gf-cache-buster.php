@@ -364,8 +364,15 @@ class GW_Cache_Buster {
 
 		$atts = rgpost( 'atts' );
 
-		// GF expects an associative array for field values. Parse them before passing it on.
-		$field_values = wp_parse_args( rgar( $atts, 'field_values' ) );
+		// GF expects an associative array for field values. Shortcode attributes can contain
+		// HTML-encoded separators (e.g. &amp;), so decode strings before parsing the query string.
+		$field_values = rgar( $atts, 'field_values' );
+
+		if ( is_string( $field_values ) ) {
+			$field_values = wp_specialchars_decode( $field_values, ENT_QUOTES );
+		}
+
+		$field_values = wp_parse_args( $field_values );
 
 		// If `$_POST` is not an empty array GF 2.5 fails to select default values for checkbox fields. See HS#26188
 		$GLOBALS['GWCB_POST'] = $_POST;
