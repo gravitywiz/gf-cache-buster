@@ -249,6 +249,23 @@ class GW_Cache_Buster {
 			document.addEventListener('DOMContentLoaded', function() {
 				( function ( $ ) {
 					var formId = '<?php echo $form_id; ?>';
+					var refreshGpnfNonces = function( $container ) {
+						var $gpnfNonces = $container.find( 'script.gfcb-gpnf-nonces' );
+
+						if ( ! $gpnfNonces.length ) {
+							return;
+						}
+
+						window.GPNFData = window.GPNFData || {};
+						window.GPNFData.nonces = window.GPNFData.nonces || {};
+
+						try {
+							$.extend( window.GPNFData.nonces, JSON.parse( $gpnfNonces.last().text() ) );
+						} catch ( e ) { }
+
+						$gpnfNonces.remove();
+					};
+
 					$.post( '<?php echo $ajax_url; ?>', {
 						action: 'gfcb_get_form',
 						form_id: '<?php echo $form_id; ?>',
@@ -256,7 +273,9 @@ class GW_Cache_Buster {
 						form_request_origin: '<?php echo esc_js( GFCommon::openssl_encrypt( GFFormsModel::get_current_page_url() ) ); ?>',
 						lang: '<?php echo $lang; ?>'
 					}, function( response ) {
-						$( '#gf-cache-buster-form-container-<?php echo $form_id; ?>' ).html( response ).fadeIn();
+						var $container = $( '#gf-cache-buster-form-container-<?php echo $form_id; ?>' );
+						$container.html( response ).fadeIn();
+						refreshGpnfNonces( $container );
 						if( window['gformInitDatepicker'] ) {
 							gformInitDatepicker();
 						}
@@ -389,12 +408,47 @@ class GW_Cache_Buster {
 
 		$GLOBALS['processing'] = true;
 		gravity_form( $form_id, filter_var( rgar( $atts, 'title', true ), FILTER_VALIDATE_BOOLEAN ), filter_var( rgar( $atts, 'description', true ), FILTER_VALIDATE_BOOLEAN ), false, $field_values, true /* default to true; add support for non-ajax in the future */, rgar( $atts, 'tabindex' ), true, $form_theme, $style_settings );
+		echo $this->get_gpnf_nonce_refresh_markup( $form_id );
 		$GLOBALS['processing'] = false;
 
 		remove_filter( 'gform_form_tag_' . $form_id, array( $this, 'add_hidden_inputs' ) );
 		remove_filter( 'gform_pre_render_' . $form_id, array( $this, 'replace_embed_tag_for_field_default_values' ) );
 
 		die();
+	}
+
+	public function get_gpnf_nonce_refresh_markup( $form_id ) {
+		if ( ! class_exists( 'GP_Nested_Forms' ) || ! $this->has_nested_form_field( $form_id ) ) {
+			return '';
+		}
+
+		$nonces = array(
+			'editEntry'      => wp_create_nonce( 'gpnf_edit_entry' ),
+			'refreshMarkup'  => wp_create_nonce( 'gpnf_refresh_markup' ),
+			'deleteEntry'    => wp_create_nonce( 'gpnf_delete_entry' ),
+			'duplicateEntry' => wp_create_nonce( 'gpnf_duplicate_entry' ),
+		);
+
+		return sprintf(
+			'<script type="application/json" class="gfcb-gpnf-nonces">%s</script>',
+			wp_json_encode( $nonces )
+		);
+	}
+
+	public function has_nested_form_field( $form_id ) {
+		$form = GFAPI::get_form( $form_id );
+
+		if ( empty( $form['fields'] ) ) {
+			return false;
+		}
+
+		foreach ( $form['fields'] as $field ) {
+			if ( isset( $field->type ) && $field->type === 'form' ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
