@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.10 | June 4, 2026
+
+- Fixed issue where encoded field values only populated the first dynamic field.
+
 ## 0.6.9 | May 27, 2026
 
 - Improved compatibility with GP Reload Form.
