@@ -351,7 +351,9 @@ class GW_Cache_Buster {
 		add_filter( 'gform_pre_render_' . $form_id, array( $this, 'replace_embed_tag_for_field_default_values' ) );
 
 		add_filter( 'gform_form_theme_slug', function( $slug, $form ) {
-			return rgar( $_REQUEST, 'form_theme' ) ?: $slug;
+			$requested_theme = sanitize_key( (string) rgar( $_REQUEST, 'form_theme' ) );
+
+			return $requested_theme ?: $slug;
 		}, 10, 2 );
 
 		add_filter( 'gpmpn_default_page_' . $form_id, function( $page ) {
