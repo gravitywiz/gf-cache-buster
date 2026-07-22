@@ -292,6 +292,13 @@ class GW_Cache_Buster {
 	}
 
 	public function is_cache_busting_applicable() {
+		// Never cache-bust in the admin or during REST requests. The block editor renders the form
+		// preview via a REST request (ServerSideRender); the injected AJAX script never executes in
+		// that context, so the form would be stuck on the loading spinner indefinitely.
+		if ( is_admin() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
+			return false;
+		}
+
 		// Check the flag captured at init time — $_POST may have been cleared by the time this runs
 		// (e.g. GP Reload Form clears $_POST before calling gravity_form() inside gform_confirmation).
 		if ( $this->_is_form_submission ) {
