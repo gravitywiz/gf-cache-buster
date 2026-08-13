@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.12 | August 13, 2026
+
+- Fixed compatibility issue where Gravity Forms blocks could hang with an infinite loading spinner in the Gutenberg editor when Cache Buster was enabled globally.
+
 ## 0.6.11 | July 1, 2026
 
 - Fixed issue where the form_theme parameter was not properly sanitized.
