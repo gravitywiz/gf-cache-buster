@@ -354,6 +354,27 @@ class GW_Cache_Buster {
 		 * Priority of this filter is set aggressively high to ensure it will take priority.
 		 */
 		add_filter( 'gform_init_scripts_footer', '__return_true', 987 );
+
+		/**
+		 * `GFAddOn::init_frontend()` is what hooks each add-on's `enqueue_scripts()` to `gform_enqueue_scripts`, and
+		 * it is not called on `admin-ajax.php`. Without this, none of the `wp_localize_script()` callbacks registered
+		 * alongside add-on scripts run while we render the form, and that is where add-ons create their frontend
+		 * nonces. Mirrors the checks `GFAddOn::init()` makes before calling `init_frontend()`.
+		 */
+		$addons = class_exists( 'GFAddOn' ) ? GFAddOn::get_registered_addons( true ) : array();
+
+		foreach ( $addons as $addon ) {
+			// Pre-2.5.6 versions of Gravity Forms return class names rather than instances.
+			if ( ! is_object( $addon ) ) {
+				continue;
+			}
+
+			$requirements = $addon->meets_minimum_requirements();
+			if ( $addon->is_gravityforms_supported() && rgar( $requirements, 'meets_requirements' ) ) {
+				add_action( 'gform_enqueue_scripts', array( $addon, 'enqueue_scripts' ), 10, 2 );
+			}
+		}
+
 		add_filter( 'gform_form_tag_' . $form_id, array( $this, 'add_hidden_inputs' ), 10, 2 );
 		add_filter( 'gform_pre_render_' . $form_id, array( $this, 'replace_embed_tag_for_field_default_values' ) );
 
@@ -397,13 +418,106 @@ class GW_Cache_Buster {
 		}
 
 		$GLOBALS['processing'] = true;
-		gravity_form( $form_id, filter_var( rgar( $atts, 'title', true ), FILTER_VALIDATE_BOOLEAN ), filter_var( rgar( $atts, 'description', true ), FILTER_VALIDATE_BOOLEAN ), false, $field_values, true /* default to true; add support for non-ajax in the future */, rgar( $atts, 'tabindex' ), true, $form_theme, $style_settings );
+
+		$script_data_snapshot = $this->snapshot_localized_script_data();
+
+		$form_markup = gravity_form( $form_id, filter_var( rgar( $atts, 'title', true ), FILTER_VALIDATE_BOOLEAN ), filter_var( rgar( $atts, 'description', true ), FILTER_VALIDATE_BOOLEAN ), false, $field_values, true /* default to true; add support for non-ajax in the future */, rgar( $atts, 'tabindex' ), false /* echo */, $form_theme, $style_settings );
+
+		$new_script_data = $this->get_localized_script_data_since( $script_data_snapshot );
+
+		// Output first so the data is in place before any inline script that ships with the markup.
+		echo $this->get_localized_script_data_markup( $form_id, $new_script_data );
+		echo $form_markup;
+
 		$GLOBALS['processing'] = false;
 
 		remove_filter( 'gform_form_tag_' . $form_id, array( $this, 'add_hidden_inputs' ) );
 		remove_filter( 'gform_pre_render_' . $form_id, array( $this, 'replace_embed_tag_for_field_default_values' ) );
 
 		die();
+	}
+
+	/**
+	 * Capture the script data registered for every script handle before the form is rendered.
+	 *
+	 * @return array The registered script data, keyed by script handle.
+	 */
+	private function snapshot_localized_script_data() {
+		$data = array();
+
+		foreach ( wp_scripts()->registered as $handle => $script ) {
+			$data[ $handle ] = isset( $script->extra['data'] ) ? $script->extra['data'] : '';
+		}
+
+		return $data;
+	}
+
+	/**
+	 * Get the script data that was registered while the form was rendered.
+	 *
+	 * `WP_Scripts::localize()` prepends a handle's existing data to the data being added, so the snapshot taken
+	 * before the render is a prefix of what is registered after it. Anything that isn't is returned in full.
+	 *
+	 * @param array $snapshot The script data captured before the form was rendered.
+	 *
+	 * @return array The newly registered script data, keyed by script handle.
+	 */
+	private function get_localized_script_data_since( $snapshot ) {
+		$new = array();
+
+		foreach ( wp_scripts()->registered as $handle => $script ) {
+			$after = isset( $script->extra['data'] ) ? $script->extra['data'] : '';
+			if ( ! $after ) {
+				continue;
+			}
+
+			$prior = isset( $snapshot[ $handle ] ) ? $snapshot[ $handle ] : '';
+			if ( $prior === $after ) {
+				continue;
+			}
+
+			if ( $prior !== '' && strpos( $after, $prior ) === 0 ) {
+				$new[ $handle ] = substr( $after, strlen( $prior ) );
+			} else {
+				$new[ $handle ] = $after;
+			}
+		}
+
+		return $new;
+	}
+
+	/**
+	 * Get an inline script tag that re-declares the script data registered while rendering the form.
+	 *
+	 * Add-ons ship their frontend nonces through `wp_localize_script()` (e.g. Populate Anything's `GPPA` object), so
+	 * that data prints with the page's scripts rather than with the form markup and is frozen into whatever a
+	 * full-page cache stored. Once the cached page is older than `nonce_life` (24 hours by default) the AJAX
+	 * requests using those nonces are rejected. `admin-ajax.php` never runs `wp_footer()`, so returning the data
+	 * with the markup is what gets it to the page: jQuery evaluates it as the form is injected.
+	 *
+	 * Note that a handle's data bucket also holds anything added via `wp_add_inline_script( $handle, $code, 'before' )`,
+	 * so this can carry more than `wp_localize_script()` output. Use the filter below to exclude a handle.
+	 *
+	 * @param int   $form_id The ID of the form being rendered.
+	 * @param array $data    The newly registered script data, keyed by script handle.
+	 *
+	 * @return string
+	 */
+	private function get_localized_script_data_markup( $form_id, $data ) {
+		/**
+		 * Filter the localized script data refreshed in the Cache Buster's AJAX response. Unset a handle to leave
+		 * its data alone, or return an empty array to disable refreshing entirely.
+		 *
+		 * @param array $data    The newly localized script data, keyed by script handle.
+		 * @param int   $form_id The ID of the form being rendered.
+		 */
+		$data = gf_apply_filters( array( 'gfcb_localized_script_data', $form_id ), $data, $form_id );
+
+		if ( empty( $data ) ) {
+			return '';
+		}
+
+		return GFCommon::get_inline_script_tag( implode( "\n", $data ) );
 	}
 
 	/**
