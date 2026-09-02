@@ -495,8 +495,12 @@ class GW_Cache_Buster {
 	 * requests using those nonces are rejected. `admin-ajax.php` never runs `wp_footer()`, so returning the data
 	 * with the markup is what gets it to the page: jQuery evaluates it as the form is injected.
 	 *
-	 * Note that a handle's data bucket also holds anything added via `wp_add_inline_script( $handle, $code, 'before' )`,
-	 * so this can carry more than `wp_localize_script()` output. Use the filter below to exclude a handle.
+	 * The data bucket this reads from is written to by `WP_Scripts::localize()` alone, `wp_add_inline_script()`
+	 * stores its code under `before`/`after`, so what we re-emit is a series of `var $object_name = {...};`
+	 * declarations. Reassigning a global like that is idempotent, which is why the second copy is harmless: the
+	 * stale one the cache froze into the page is simply overwritten. The exception is the back-compat
+	 * `l10n_print_after` key, which appends arbitrary code after the declaration; use the filter below to exclude
+	 * a handle that relies on it.
 	 *
 	 * @param int   $form_id The ID of the form being rendered.
 	 * @param array $data    The newly registered script data, keyed by script handle.
