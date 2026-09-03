@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.13 | September 3, 2026
+
+- Fixed issue where nonces passed to JavaScript via `wp_localize_script` were not refreshed in the AJAX response.
+
 ## 0.6.12 | August 13, 2026
 
 - Fixed compatibility issue where Gravity Forms blocks could hang with an infinite loading spinner in the Gutenberg editor when Cache Buster was enabled globally.
