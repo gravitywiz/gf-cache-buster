@@ -337,10 +337,18 @@ class GW_Cache_Buster {
 			$form_id = isset( $_GET['form_id'] ) ? absint( $_GET['form_id'] ) : 0;
 		}
 
+		/**
+		 * Advanced Save & Continue builds its "Start New Draft" link from the current request URI, which is
+		 * admin-ajax.php while we render the form, so point it back at the page the form is embedded on.
+		 *
+		 * This reads the origin via get_form_request_origin() rather than $_POST directly: by the time the
+		 * form renders we have moved $_POST into $GLOBALS['GWCB_POST'] (see ajax_get_form()), so a direct
+		 * rgpost() lookup finds nothing and the link falls back to the admin-ajax.php URL.
+		 */
 		add_filter( 'gpasc_new_draft_form_path', function( $form_path, $form ) {
-			return rgpost( 'form_request_origin' )
-				? remove_query_arg( 'gf_token', GFCommon::openssl_decrypt( rgpost( 'form_request_origin' ) ) )
-				: $form_path;
+			$origin = $this->get_form_request_origin();
+
+			return $origin ? remove_query_arg( 'gf_token', $origin ) : $form_path;
 		}, 10, 2 );
 
 		/**
