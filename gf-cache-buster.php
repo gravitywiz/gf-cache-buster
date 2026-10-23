@@ -299,6 +299,12 @@ class GW_Cache_Buster {
 			return false;
 		}
 
+		// Never cache-bust the Gravity Forms preview. It is not cached, and the AJAX request carries the page's query
+		// string, so `gf_page=preview` makes Gravity Forms render the whole preview page into the form container.
+		if ( GFCommon::is_preview() ) {
+			return false;
+		}
+
 		// Check the flag captured at init time — $_POST may have been cleared by the time this runs
 		// (e.g. GP Reload Form clears $_POST before calling gravity_form() inside gform_confirmation).
 		if ( $this->_is_form_submission ) {
