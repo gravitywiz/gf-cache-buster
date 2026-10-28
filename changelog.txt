@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.14 | October 28, 2026
+
+- Fixed an issue where the "Start New Draft" button could link to the wrong URL when using GF Cache Buster.
+- Fixed issue where the Gravity Forms form preview rendered the preview page twice when Cache Buster was enabled with the `gfcb_enable_cache_buster` filter.
+
 ## 0.6.13 | September 3, 2026
 
 - Fixed issue where nonces passed to JavaScript via `wp_localize_script` were not refreshed in the AJAX response.
